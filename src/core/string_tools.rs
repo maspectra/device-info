@@ -1,6 +1,7 @@
 #[allow(dead_code)]
 pub fn strip_trailing_newline(input: &str) -> &str {
     input
+        .trim()
         .strip_suffix("\r\n")
         .or(input.strip_suffix('\n'))
         .unwrap_or(input)

@@ -8,6 +8,7 @@ use crate::core::internal::{BaseDeviceInfoBuilder, IDeviceInfoBuilder};
 #[cfg(target_os = "macos")]
 use crate::core::string_tools::strip_trailing_newline;
 
+#[allow(dead_code)]
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum MacOSBuilderComponents {
     SystemDriveSerialNumber,
