@@ -1,23 +1,32 @@
-use std::{
-    collections::HashMap,
-    fmt::{self, Display, Formatter},
-};
+use std::collections::HashMap;
+use std::fmt;
 
-use crate::plugins::{macos::plugin::MacOSBuilderPlugin, windows::plugin::WindowsBuilderPlugin};
+use crate::core::internal::IDeviceInfoBuilder;
 
-pub struct MachineCodeBuilder {
+use crate::plugins::{macos::plugin::MacOSBuilder, windows::plugin::WindowsBuilder};
+
+pub struct DeviceInfoMainBuilder {
     // Key: Name
     // Value
     pub components: HashMap<String, String>,
 }
 
-impl Display for MachineCodeBuilder {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+impl IDeviceInfoBuilder for DeviceInfoMainBuilder {
+    fn get_components(&self) -> &HashMap<String, String> {
+        &self.components
+    }
+
+    fn get_components_mut(&mut self) -> &mut HashMap<String, String> {
+        &mut self.components
+    }
+}
+
+impl fmt::Display for DeviceInfoMainBuilder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(
             &self
-                .components
-                .clone()
-                .into_iter()
+                .get_components()
+                .iter()
                 .map(|component| format!("{}: {}", component.0, component.1))
                 .collect::<Vec<String>>()
                 .join("\n"),
@@ -25,7 +34,7 @@ impl Display for MachineCodeBuilder {
     }
 }
 
-impl MachineCodeBuilder {
+impl DeviceInfoMainBuilder {
     pub fn new() -> Self {
         Self {
             components: HashMap::new(),
@@ -33,43 +42,38 @@ impl MachineCodeBuilder {
     }
 
     pub fn add_user_name(&mut self) -> &mut Self {
-        self.components
-            .insert("UserName".to_string(), whoami::username());
+        self.add_component("userName", whoami::username().as_str());
         self
     }
 
     pub fn add_device_name(&mut self) -> &mut Self {
-        self.components
-            .insert("DeviceName".to_string(), whoami::devicename());
+        self.add_component("deviceName", whoami::devicename().as_str());
         self
     }
 
     pub fn add_platform_name(&mut self) -> &mut Self {
-        self.components
-            .insert("Platform".to_string(), whoami::platform().to_string());
+        self.add_component("platform", whoami::platform().to_string().as_str());
         self
     }
 
     pub fn add_os_distro(&mut self) -> &mut Self {
-        self.components
-            .insert("OSDistro".to_string(), whoami::distro());
+        self.add_component("osDistro", whoami::distro().as_str());
         self
     }
 
     pub fn add_cpu_arch(&mut self) -> &mut Self {
-        self.components
-            .insert("CpuArch".to_string(), whoami::arch().to_string());
+        self.add_component("cpuArch", whoami::arch().to_string().as_str());
         self
     }
 
     #[allow(dead_code)]
     pub fn on_windows<F>(&mut self, _on_windows_plugin: F) -> &mut Self
     where
-        F: Fn(&mut WindowsBuilderPlugin) -> &mut WindowsBuilderPlugin,
+        F: Fn(&mut WindowsBuilder) -> &mut WindowsBuilder,
     {
         match whoami::platform() == whoami::Platform::Windows {
             true => {
-                let windows_builder = WindowsBuilderPlugin::new();
+                let windows_builder = WindowsBuilder::new();
                 // on_windows_plugin(&mut windows_builder);
                 self.extend_components(&windows_builder.components);
                 self
@@ -81,31 +85,16 @@ impl MachineCodeBuilder {
 
     pub fn on_macos<F>(&mut self, on_macos_plugin: F) -> &mut Self
     where
-        F: Fn(&mut MacOSBuilderPlugin) -> &mut MacOSBuilderPlugin,
+        F: Fn(&mut MacOSBuilder) -> &mut MacOSBuilder,
     {
         match whoami::platform() == whoami::Platform::MacOS {
             true => {
-                let mut macos_builder = MacOSBuilderPlugin::new();
+                let mut macos_builder = MacOSBuilder::new();
                 on_macos_plugin(&mut macos_builder);
                 self.extend_components(&macos_builder.components);
                 self
             }
             false => self,
-        }
-    }
-
-    pub fn add_component(&mut self, name: &str, value: &str) {
-        // check if the given name already exists
-        if self.components.get(name).is_some() {
-            panic!("Component with name '{}' already exists", name);
-        }
-
-        self.components.insert(name.to_string(), value.to_string());
-    }
-
-    pub fn extend_components(&mut self, components: &HashMap<String, String>) {
-        for component in components {
-            self.add_component(component.0, component.1);
         }
     }
 

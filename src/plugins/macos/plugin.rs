@@ -1,11 +1,27 @@
+#[cfg(target_os = "macos")]
 use crate::core::string_tools::strip_trailing_newline;
-use std::{collections::HashMap, process::Command};
+#[cfg(target_os = "macos")]
+use std::process::Command;
 
-pub struct MacOSBuilderPlugin {
+use std::collections::HashMap;
+
+use crate::core::internal::IDeviceInfoBuilder;
+
+pub struct MacOSBuilder {
     pub components: HashMap<String, String>,
 }
 
-impl MacOSBuilderPlugin {
+impl IDeviceInfoBuilder for MacOSBuilder {
+    fn get_components(&self) -> &HashMap<String, String> {
+        &self.components
+    }
+
+    fn get_components_mut(&mut self) -> &mut HashMap<String, String> {
+        &mut self.components
+    }
+}
+
+impl MacOSBuilder {
     pub fn new() -> Self {
         Self {
             components: HashMap::new(),
@@ -22,10 +38,7 @@ impl MacOSBuilderPlugin {
 
         let output = String::from_utf8(cmd.stdout).expect("failed to decode output");
 
-        self.components.insert(
-            "SystemDriveSerialNumber".to_string(),
-            strip_trailing_newline(&output).to_owned(),
-        );
+        self.add_component("systemDriveSerialNumber", strip_trailing_newline(&output));
         self
     }
 
@@ -44,10 +57,7 @@ impl MacOSBuilderPlugin {
 
         let output = String::from_utf8(cmd.stdout).expect("failed to decode output");
 
-        self.components.insert(
-            "PlatformSerialNumber".to_string(),
-            strip_trailing_newline(&output).to_owned(),
-        );
+        self.add_component("platformSerialNumber", strip_trailing_newline(&output));
         self
     }
 

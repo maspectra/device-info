@@ -42,7 +42,7 @@ fn main() {
         whoami::arch(),
     );
 
-    let mut builder = core::builder::MachineCodeBuilder::new();
+    let mut builder = core::builder::DeviceInfoMainBuilder::new();
     builder
         .add_user_name()
         .add_platform_name()
