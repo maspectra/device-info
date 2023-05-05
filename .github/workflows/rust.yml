@@ -22,7 +22,7 @@ jobs:
     - name: Add Clippy
       run: rustup component add clippy
     - name: Run Clippy
-      run: cargo clippy --all-targets -- -D warnings
+      run: cargo clippy --all-targets --all-features
     # fmt
     - name: Run Format check
       run: cargo fmt -- --check

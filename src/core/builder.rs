@@ -1,115 +1,221 @@
-use std::{
-    collections::HashMap,
-    fmt::{self, Display, Formatter},
-};
+use std::collections::HashMap;
+use std::fmt;
 
-use crate::plugins::{macos::plugin::MacOSBuilderPlugin, windows::plugin::WindowsBuilderPlugin};
+use serde::Serialize;
 
-pub struct MachineCodeBuilder {
-    // Key: Name
-    // Value
-    pub components: HashMap<String, String>,
+use crate::core::internal::IDeviceInfoBuilder;
+use crate::plugins::macos::plugin::{MacOSBuilder, MacOSBuilderComponents};
+
+use super::internal::BaseDeviceInfoBuilder;
+
+// use crate::plugins::{macos::plugin, windows::plugin::WindowsBuilder};
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+pub enum MainBuilderComponents {
+    UserName,
+    DeviceName,
+    Platform,
+    OsDistro,
+    CpuArch,
+    MacOSBuilderComponents(MacOSBuilderComponents),
 }
 
-impl Display for MachineCodeBuilder {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str(
-            &self
-                .components
-                .clone()
-                .into_iter()
-                .map(|component| format!("{}: {}", component.0, component.1))
-                .collect::<Vec<String>>()
-                .join("\n"),
-        )
+impl MainBuilderComponents {
+    pub fn as_str(&self) -> &str {
+        match *self {
+            MainBuilderComponents::UserName => "userName",
+            MainBuilderComponents::DeviceName => "deviceName",
+            MainBuilderComponents::Platform => "platform",
+            MainBuilderComponents::OsDistro => "osDistro",
+            MainBuilderComponents::CpuArch => "cpuArch",
+            MainBuilderComponents::MacOSBuilderComponents(ref component) => component.as_str(),
+        }
     }
 }
 
-impl MachineCodeBuilder {
+impl Serialize for MainBuilderComponents {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.as_str().serialize(serializer)
+    }
+}
+
+impl fmt::Display for MainBuilderComponents {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+pub trait IMainBuilder: IDeviceInfoBuilder<MainBuilderComponents> {
+    fn add_user_name(&mut self) -> &mut Self;
+    fn add_device_name(&mut self) -> &mut Self;
+    fn add_platform_name(&mut self) -> &mut Self;
+    fn add_os_distro(&mut self) -> &mut Self;
+    fn add_cpu_arch(&mut self) -> &mut Self;
+    fn on_macos<F>(&mut self, on_macos_plugin: F) -> &mut Self
+    where
+        F: Fn(&mut MacOSBuilder) -> &mut MacOSBuilder;
+}
+
+pub struct MainDeviceInfoBuilder {
+    _base: BaseDeviceInfoBuilder<MainBuilderComponents>,
+}
+
+impl MainDeviceInfoBuilder {
     pub fn new() -> Self {
         Self {
-            components: HashMap::new(),
+            _base: BaseDeviceInfoBuilder::<MainBuilderComponents>::new(),
         }
     }
+}
 
-    pub fn add_user_name(&mut self) -> &mut Self {
-        self.components
-            .insert("UserName".to_string(), whoami::username());
+impl IDeviceInfoBuilder<MainBuilderComponents> for MainDeviceInfoBuilder {
+    fn get_components(&self) -> &HashMap<MainBuilderComponents, String> {
+        &self._base.components
+    }
+    fn get_components_mut(&mut self) -> &mut HashMap<MainBuilderComponents, String> {
+        &mut self._base.components
+    }
+}
+
+impl IMainBuilder for MainDeviceInfoBuilder {
+    fn add_user_name(&mut self) -> &mut Self {
+        self.add_component(
+            &MainBuilderComponents::UserName,
+            whoami::username().as_str(),
+        );
         self
     }
 
-    pub fn add_device_name(&mut self) -> &mut Self {
-        self.components
-            .insert("DeviceName".to_string(), whoami::devicename());
+    fn add_device_name(&mut self) -> &mut Self {
+        self.add_component(
+            &MainBuilderComponents::DeviceName,
+            whoami::devicename().as_str(),
+        );
         self
     }
 
-    pub fn add_platform_name(&mut self) -> &mut Self {
-        self.components
-            .insert("Platform".to_string(), whoami::platform().to_string());
+    fn add_platform_name(&mut self) -> &mut Self {
+        self.add_component(
+            &MainBuilderComponents::Platform,
+            whoami::platform().to_string().as_str(),
+        );
         self
     }
 
-    pub fn add_os_distro(&mut self) -> &mut Self {
-        self.components
-            .insert("OSDistro".to_string(), whoami::distro());
+    fn add_os_distro(&mut self) -> &mut Self {
+        self.add_component(&MainBuilderComponents::OsDistro, whoami::distro().as_str());
         self
     }
 
-    pub fn add_cpu_arch(&mut self) -> &mut Self {
-        self.components
-            .insert("CpuArch".to_string(), whoami::arch().to_string());
+    fn add_cpu_arch(&mut self) -> &mut Self {
+        self.add_component(
+            &MainBuilderComponents::CpuArch,
+            whoami::arch().to_string().as_str(),
+        );
         self
     }
 
-    #[allow(dead_code)]
-    pub fn on_windows<F>(&mut self, _on_windows_plugin: F) -> &mut Self
+    // #[allow(dead_code)]
+    // pub fn on_windows<F>(&mut self, _on_windows_plugin: F) -> &mut Self
+    // where
+    //     F: Fn(&mut WindowsBuilder) -> &mut WindowsBuilder,
+    // {
+    //     match whoami::platform() == whoami::Platform::Windows {
+    //         true => {
+    //             let windows_builder = WindowsBuilder::new();
+    //             // on_windows_plugin(&mut windows_builder);
+    //             self.extend_components(&windows_builder.components);
+    //             self
+    //         }
+    //         // if is not windows, return self directly
+    //         false => self,
+    //     }
+    // }
+
+    fn on_macos<F>(&mut self, on_macos_plugin: F) -> &mut Self
     where
-        F: Fn(&mut WindowsBuilderPlugin) -> &mut WindowsBuilderPlugin,
-    {
-        match whoami::platform() == whoami::Platform::Windows {
-            true => {
-                let windows_builder = WindowsBuilderPlugin::new();
-                // on_windows_plugin(&mut windows_builder);
-                self.extend_components(&windows_builder.components);
-                self
-            }
-            // if is not windows, return self directly
-            false => self,
-        }
-    }
-
-    pub fn on_macos<F>(&mut self, on_macos_plugin: F) -> &mut Self
-    where
-        F: Fn(&mut MacOSBuilderPlugin) -> &mut MacOSBuilderPlugin,
+        F: Fn(&mut MacOSBuilder) -> &mut MacOSBuilder,
     {
         match whoami::platform() == whoami::Platform::MacOS {
             true => {
-                let mut macos_builder = MacOSBuilderPlugin::new();
+                let mut macos_builder = MacOSBuilder::new();
                 on_macos_plugin(&mut macos_builder);
-                self.extend_components(&macos_builder.components);
+                self.extend_components(
+                    &(macos_builder
+                        .get_components()
+                        .iter()
+                        .map(|component| {
+                            (
+                                MainBuilderComponents::MacOSBuilderComponents(*component.0),
+                                component.1.to_owned(),
+                            )
+                        })
+                        .collect()),
+                );
                 self
             }
             false => self,
         }
     }
+}
 
-    pub fn add_component(&mut self, name: &str, value: &str) {
-        // check if the given name already exists
-        if self.components.get(name).is_some() {
-            panic!("Component with name '{}' already exists", name);
-        }
+impl Serialize for MainDeviceInfoBuilder {
+    fn serialize<S>(
+        &self,
+        serializer: S,
+    ) -> Result<<S as serde::Serializer>::Ok, <S as serde::Serializer>::Error>
+    where
+        S: serde::Serializer,
+    {
+        self._base.serialize(serializer)
+    }
+}
 
-        self.components.insert(name.to_string(), value.to_string());
+impl Default for MainDeviceInfoBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::plugins::macos::plugin::IMacOSBuilder;
+
+    #[test]
+    fn test_main_builder() {
+        let mut builder = MainDeviceInfoBuilder::new();
+        builder
+            .add_user_name()
+            .add_platform_name()
+            .add_device_name()
+            .add_cpu_arch()
+            .add_os_distro()
+            .on_macos(|macos_builder| {
+                macos_builder
+                    .add_platform_serial_number()
+                    .add_system_drive_serial_number()
+            });
+        println!("{:?}", builder.get_components());
     }
 
-    pub fn extend_components(&mut self, components: &HashMap<String, String>) {
-        for component in components {
-            self.add_component(component.0, component.1);
-        }
-    }
-
-    pub fn serialize(&self) -> String {
-        serde_json::to_string(&self.components).expect("Failed to serialize MachineCodeBuilder")
+    #[test]
+    fn test_main_builder_serialize() {
+        let mut builder = MainDeviceInfoBuilder::new();
+        builder
+            .add_user_name()
+            .add_platform_name()
+            .add_device_name()
+            .add_cpu_arch()
+            .add_os_distro()
+            .on_macos(|macos_builder| {
+                macos_builder
+                    .add_platform_serial_number()
+                    .add_system_drive_serial_number()
+            });
+        println!("{}", serde_json::to_string(&builder).unwrap());
     }
 }
