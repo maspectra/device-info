@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub fn strip_trailing_newline(input: &str) -> &str {
     input
         .strip_suffix("\r\n")

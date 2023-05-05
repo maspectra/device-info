@@ -119,6 +119,7 @@ impl Default for MacOSBuilder {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use super::*;
 
