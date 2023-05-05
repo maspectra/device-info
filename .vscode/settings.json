@@ -1,0 +1,4 @@
+{
+  "editor.inlayHints.enabled": "offUnlessPressed",
+  "rust-analyzer.lru.capacity": 1000
+}
