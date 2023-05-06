@@ -2,17 +2,6 @@ use std::{collections::HashMap, fmt};
 
 use serde;
 
-#[cfg(target_os = "windows")]
-use winreg;
-
-#[cfg(target_os = "windows")]
-use wmi::{COMLibrary, Variant, WMIConnection};
-
-#[cfg(target_os = "windows")]
-thread_local! {
-    static COM_LIB: COMLibrary = COMLibrary::without_security().unwrap();
-}
-
 use crate::core::internal::{BaseDeviceInfoBuilder, IDeviceInfoBuilder};
 #[cfg(target_os = "windows")]
 use crate::core::string_tools::strip_trailing_newline;
@@ -117,17 +106,11 @@ impl IWindowsBuilder for WindowsBuilder {
         #[cfg(target_os = "windows")]
         {
             let res: Vec<UserNameQueryResult> =
-                WmiSingleton::raw_query("SELECT UserName FROM Win32_PhysicalMedia");
+                WmiSingleton::raw_query("SELECT UserName FROM Win32_ComputerSystem");
 
             self.add_component(
                 &WindowsBuilderComponents::LogonUserName,
-                strip_trailing_newline(
-                    &res.get(0)
-                        .expect("Nothing queried out")
-                        .user_name
-                        .trim()
-                        .clone(),
-                ),
+                strip_trailing_newline(res.get(0).expect("Nothing queried out").user_name.trim()),
             );
             self
         }
@@ -146,11 +129,10 @@ impl IWindowsBuilder for WindowsBuilder {
             self.add_component(
                 &WindowsBuilderComponents::SystemDriveSerialNumber,
                 strip_trailing_newline(
-                    &res.get(0)
+                    res.get(0)
                         .expect("Nothing queried out")
                         .serial_number
-                        .trim()
-                        .clone(),
+                        .trim(),
                 ),
             );
             self
@@ -171,11 +153,10 @@ impl IWindowsBuilder for WindowsBuilder {
             self.add_component(
                 &WindowsBuilderComponents::MotherBoardSerialNumber,
                 strip_trailing_newline(
-                    &res.get(0)
+                    res.get(0)
                         .expect("Nothing queried out")
                         .serial_number
-                        .trim()
-                        .clone(),
+                        .trim(),
                 ),
             );
             self
@@ -194,9 +175,7 @@ impl IWindowsBuilder for WindowsBuilder {
 
             self.add_component(
                 &WindowsBuilderComponents::SystemUuid,
-                strip_trailing_newline(
-                    &res.get(0).expect("Nothing queried out").uuid.trim().clone(),
-                ),
+                strip_trailing_newline(res.get(0).expect("Nothing queried out").uuid.trim()),
             );
             self
         }
@@ -215,13 +194,7 @@ impl IWindowsBuilder for WindowsBuilder {
 
             self.add_component(
                 &WindowsBuilderComponents::MACAddress,
-                strip_trailing_newline(
-                    &res.get(0)
-                        .expect("Nothing queried out")
-                        .MACAddress
-                        .trim()
-                        .clone(),
-                ),
+                strip_trailing_newline(res.get(0).expect("Nothing queried out").MACAddress.trim()),
             );
             self
         }
