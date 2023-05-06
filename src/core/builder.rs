@@ -15,8 +15,8 @@ use super::internal::BaseDeviceInfoBuilder;
 pub enum MainBuilderComponents {
     UserName,
     DeviceName,
-    Platform,
-    OsDistro,
+    OSPlatform,
+    OSDistro,
     CpuArch,
     WindowsBuilderComponents(WindowsBuilderComponents),
     MacOSBuilderComponents(MacOSBuilderComponents),
@@ -27,8 +27,8 @@ impl MainBuilderComponents {
         match *self {
             MainBuilderComponents::UserName => "userName",
             MainBuilderComponents::DeviceName => "deviceName",
-            MainBuilderComponents::Platform => "platform",
-            MainBuilderComponents::OsDistro => "osDistro",
+            MainBuilderComponents::OSPlatform => "osPlatform",
+            MainBuilderComponents::OSDistro => "osDistro",
             MainBuilderComponents::CpuArch => "cpuArch",
             MainBuilderComponents::WindowsBuilderComponents(ref component) => component.as_str(),
             MainBuilderComponents::MacOSBuilderComponents(ref component) => component.as_str(),
@@ -113,14 +113,14 @@ impl IMainBuilder for MainDeviceInfoBuilder {
 
     fn add_platform_name(&mut self) -> &mut Self {
         self.add_component(
-            &MainBuilderComponents::Platform,
+            &MainBuilderComponents::OSPlatform,
             whoami::platform().to_string().as_str(),
         );
         self
     }
 
     fn add_os_distro(&mut self) -> &mut Self {
-        self.add_component(&MainBuilderComponents::OsDistro, whoami::distro().as_str());
+        self.add_component(&MainBuilderComponents::OSDistro, whoami::distro().as_str());
         self
     }
 
