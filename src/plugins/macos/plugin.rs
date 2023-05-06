@@ -9,7 +9,7 @@ use crate::core::internal::{BaseDeviceInfoBuilder, IDeviceInfoBuilder};
 use crate::core::string_tools::strip_trailing_newline;
 
 #[allow(dead_code)]
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub enum MacOSBuilderComponents {
     SystemDriveSerialNumber,
     PlatformSerialNumber,
