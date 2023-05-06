@@ -16,6 +16,7 @@ fn main() {
         .add_os_distro()
         .on_windows(|windows_builder| {
             windows_builder
+                .add_logon_user_name()
                 .add_system_drive_serial_number()
                 .add_mother_board_serial_number()
                 .add_system_uuid()

@@ -1,5 +1,7 @@
 use std::{collections::HashMap, fmt};
 
+use serde;
+
 #[cfg(target_os = "windows")]
 use winreg;
 
@@ -11,8 +13,6 @@ thread_local! {
     static COM_LIB: COMLibrary = COMLibrary::without_security().unwrap();
 }
 
-use serde::{Deserialize, Deserializer, Serialize};
-
 use crate::core::internal::{BaseDeviceInfoBuilder, IDeviceInfoBuilder};
 #[cfg(target_os = "windows")]
 use crate::core::string_tools::strip_trailing_newline;
@@ -22,13 +22,14 @@ use crate::plugins::windows::wmi::WmiSingleton;
 #[allow(dead_code)]
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum WindowsBuilderComponents {
+    LogonUserName,
     SystemDriveSerialNumber,
     MotherBoardSerialNumber,
     SystemUuid,
     MACAddress,
 }
 
-impl Serialize for WindowsBuilderComponents {
+impl serde::Serialize for WindowsBuilderComponents {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -40,6 +41,7 @@ impl Serialize for WindowsBuilderComponents {
 impl WindowsBuilderComponents {
     pub fn as_str(&self) -> &str {
         match *self {
+            WindowsBuilderComponents::LogonUserName => "logonUserName",
             WindowsBuilderComponents::SystemDriveSerialNumber => "systemDriveSerialNumber",
             WindowsBuilderComponents::MotherBoardSerialNumber => "motherBoardSerialNumber",
             WindowsBuilderComponents::SystemUuid => "systemUuid",
@@ -54,6 +56,7 @@ impl fmt::Display for WindowsBuilderComponents {
 }
 
 pub trait IWindowsBuilder: IDeviceInfoBuilder<WindowsBuilderComponents> {
+    fn add_logon_user_name(&mut self) -> &mut Self;
     fn add_system_drive_serial_number(&mut self) -> &mut Self;
     fn add_mother_board_serial_number(&mut self) -> &mut Self;
     fn add_system_uuid(&mut self) -> &mut Self;
@@ -82,27 +85,58 @@ impl IDeviceInfoBuilder<WindowsBuilderComponents> for WindowsBuilder {
 }
 
 #[cfg(target_os = "windows")]
-#[derive(Deserialize)]
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "PascalCase")]
+struct UserNameQueryResult {
+    user_name: String,
+}
+
+#[cfg(target_os = "windows")]
+#[derive(serde::Deserialize)]
 #[serde(rename_all = "PascalCase")]
 struct SerialNumberQueryResult {
     serial_number: String,
 }
 
 #[cfg(target_os = "windows")]
-#[derive(Deserialize)]
+#[derive(serde::Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
 struct UUIDQueryResult {
     uuid: String,
 }
 
 #[cfg(target_os = "windows")]
-#[derive(Deserialize)]
+#[derive(serde::Deserialize)]
 #[allow(non_snake_case)]
 struct MACAddressQueryResult {
     MACAddress: String,
 }
 
 impl IWindowsBuilder for WindowsBuilder {
+    fn add_logon_user_name(&mut self) -> &mut Self {
+        #[cfg(target_os = "windows")]
+        {
+            let res: Vec<UserNameQueryResult> =
+                WmiSingleton::raw_query("SELECT UserName FROM Win32_PhysicalMedia");
+
+            self.add_component(
+                &WindowsBuilderComponents::LogonUserName,
+                strip_trailing_newline(
+                    &res.get(0)
+                        .expect("Nothing queried out")
+                        .user_name
+                        .trim()
+                        .clone(),
+                ),
+            );
+            self
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            todo!()
+        }
+    }
     fn add_system_drive_serial_number(&mut self) -> &mut Self {
         #[cfg(target_os = "windows")]
         {
@@ -205,22 +239,51 @@ impl Default for WindowsBuilder {
 }
 
 #[cfg(test)]
-#[cfg(target_os = "macos")]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_macos_builder() {
-        let mut builder = MacOSBuilder::new();
+    fn test_windows_builder_serial_number() {
+        let mut builder = WindowsBuilder::new();
         builder.add_system_drive_serial_number();
-        builder.add_platform_serial_number();
 
-        let components = builder.get_components();
-        assert!(components
-            .get(&MacOSBuilderComponents::SystemDriveSerialNumber)
-            .is_some());
-        assert!(components
-            .get(&MacOSBuilderComponents::PlatformSerialNumber)
-            .is_some());
+        println!("{:?}", builder.get_components());
+    }
+
+    #[test]
+    fn test_windows_builder_mother_board_serial_number() {
+        let mut builder = WindowsBuilder::new();
+        builder.add_mother_board_serial_number();
+
+        println!("{:?}", builder.get_components());
+    }
+
+    #[test]
+    fn test_windows_builder_system_uuid() {
+        let mut builder = WindowsBuilder::new();
+        builder.add_system_uuid();
+
+        println!("{:?}", builder.get_components());
+    }
+
+    #[test]
+    fn test_windows_builder_mac_address() {
+        let mut builder = WindowsBuilder::new();
+        builder.add_mac_address();
+
+        println!("{:?}", builder.get_components());
+    }
+
+    #[test]
+    fn test_windows_builder_all() {
+        let mut builder = WindowsBuilder::new();
+        builder
+            .add_system_drive_serial_number()
+            .add_mother_board_serial_number()
+            .add_system_uuid()
+            .add_mac_address();
+
+        println!("{:?}", builder.get_components());
     }
 }

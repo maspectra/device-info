@@ -1,8 +1,7 @@
 use serde::de::DeserializeOwned;
-#[cfg(target_os = "windows")]
+
 use wmi::{COMLibrary, WMIConnection};
 
-#[cfg(target_os = "windows")]
 thread_local! {
     static COM_LIB: COMLibrary = COMLibrary::without_security().unwrap();
 }

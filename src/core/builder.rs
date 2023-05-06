@@ -145,28 +145,29 @@ impl IMainBuilder for MainDeviceInfoBuilder {
 
     fn on_windows<F>(&mut self, on_windows_plugin: F) -> &mut Self
     where
-        F: Fn(&mut WindowsBuilder) -> &mut WindowsBuilder {
-            match whoami::platform() == whoami::Platform::Windows {
-                true => {
-                    let mut windows_builder = WindowsBuilder::new();
-                    on_windows_plugin(&mut windows_builder);
-                    self.extend_components(
-                        &(windows_builder
-                            .get_components()
-                            .iter()
-                            .map(|component| {
-                                (
-                                    MainBuilderComponents::WindowsBuilderComponents(*component.0),
-                                    component.1.to_owned(),
-                                )
-                            })
-                            .collect()),
-                    );
-                    self
-                }
-                false => self,
+        F: Fn(&mut WindowsBuilder) -> &mut WindowsBuilder,
+    {
+        match whoami::platform() == whoami::Platform::Windows {
+            true => {
+                let mut windows_builder = WindowsBuilder::new();
+                on_windows_plugin(&mut windows_builder);
+                self.extend_components(
+                    &(windows_builder
+                        .get_components()
+                        .iter()
+                        .map(|component| {
+                            (
+                                MainBuilderComponents::WindowsBuilderComponents(*component.0),
+                                component.1.to_owned(),
+                            )
+                        })
+                        .collect()),
+                );
+                self
             }
+            false => self,
         }
+    }
 
     fn on_macos<F>(&mut self, on_macos_plugin: F) -> &mut Self
     where
