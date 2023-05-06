@@ -4,8 +4,6 @@ use crate::{
     plugins::{macos::plugin::IMacOSBuilder, windows::plugin::IWindowsBuilder},
 };
 
-use clap;
-
 mod core;
 mod plugins;
 
@@ -40,7 +38,7 @@ fn do_print(print_m: &clap::ArgMatches) {
         .unwrap()
     {
         "json" => println!("{}", serde_json::to_string(&builder).unwrap()),
-        "text" => println!("{}", builder.to_string()),
+        "text" => println!("{}", builder),
         _ => panic!("Invalid format"),
     }
 }
