@@ -9,7 +9,7 @@ use crate::core::string_tools::strip_trailing_newline;
 use crate::plugins::windows::wmi::WmiSingleton;
 
 #[allow(dead_code)]
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub enum WindowsBuilderComponents {
     LogonUserName,
     SystemDriveSerialNumber,

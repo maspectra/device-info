@@ -1,10 +1,10 @@
-use std::{collections::HashMap, fmt, hash::Hash};
-
+use itertools::Itertools;
 use serde::Serialize;
+use std::{collections::HashMap, fmt, hash::Hash};
 
 pub trait IDeviceInfoBuilder<KT>
 where
-    KT: Clone + Copy + Hash + Eq + fmt::Display,
+    KT: Clone + Copy + Hash + Eq + fmt::Display + Ord,
 {
     fn get_components(&self) -> &HashMap<KT, String>;
     fn get_components_mut(&mut self) -> &mut HashMap<KT, String>;
@@ -29,14 +29,14 @@ where
 #[derive(Debug, Serialize)]
 pub struct BaseDeviceInfoBuilder<KT>
 where
-    KT: Clone + Copy + Hash + Eq + fmt::Display,
+    KT: Clone + Copy + Hash + Eq + fmt::Display + Ord,
 {
     pub components: HashMap<KT, String>,
 }
 
 impl<KT> BaseDeviceInfoBuilder<KT>
 where
-    KT: Clone + Copy + Hash + Eq + fmt::Display,
+    KT: Clone + Copy + Hash + Eq + fmt::Display + Ord,
 {
     pub fn new() -> Self {
         Self {
@@ -47,7 +47,7 @@ where
 
 impl<KT> Default for BaseDeviceInfoBuilder<KT>
 where
-    KT: Clone + Copy + Hash + Eq + fmt::Display,
+    KT: Clone + Copy + Hash + Eq + fmt::Display + Ord,
 {
     fn default() -> Self {
         Self::new()
@@ -56,13 +56,14 @@ where
 
 impl<KT> fmt::Display for BaseDeviceInfoBuilder<KT>
 where
-    KT: Clone + Copy + Hash + Eq + fmt::Display,
+    KT: Clone + Copy + Hash + Eq + fmt::Display + Ord,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(
             &self
                 .get_components()
                 .iter()
+                .sorted_by_key(|el| el.0)
                 .map(|component| format!("{}: {}", component.0, component.1))
                 .collect::<Vec<String>>()
                 .join("\n"),
@@ -72,7 +73,7 @@ where
 
 impl<KT> IDeviceInfoBuilder<KT> for BaseDeviceInfoBuilder<KT>
 where
-    KT: Clone + Copy + Hash + Eq + fmt::Display,
+    KT: Clone + Copy + Hash + Eq + fmt::Display + Ord,
 {
     fn get_components(&self) -> &HashMap<KT, String> {
         &self.components

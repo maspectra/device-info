@@ -11,7 +11,7 @@ use super::internal::BaseDeviceInfoBuilder;
 
 // use crate::plugins::{macos::plugin, windows::plugin::WindowsBuilder};
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub enum MainBuilderComponents {
     UserName,
     DeviceName,
@@ -76,6 +76,12 @@ impl MainDeviceInfoBuilder {
         Self {
             _base: BaseDeviceInfoBuilder::<MainBuilderComponents>::new(),
         }
+    }
+}
+
+impl fmt::Display for MainDeviceInfoBuilder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self._base.fmt(f)
     }
 }
 
