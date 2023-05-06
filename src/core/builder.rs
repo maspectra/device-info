@@ -5,6 +5,7 @@ use serde::Serialize;
 
 use crate::core::internal::IDeviceInfoBuilder;
 use crate::plugins::macos::plugin::{MacOSBuilder, MacOSBuilderComponents};
+use crate::plugins::windows::plugin::{WindowsBuilder, WindowsBuilderComponents};
 
 use super::internal::BaseDeviceInfoBuilder;
 
@@ -17,6 +18,7 @@ pub enum MainBuilderComponents {
     Platform,
     OsDistro,
     CpuArch,
+    WindowsBuilderComponents(WindowsBuilderComponents),
     MacOSBuilderComponents(MacOSBuilderComponents),
 }
 
@@ -28,6 +30,7 @@ impl MainBuilderComponents {
             MainBuilderComponents::Platform => "platform",
             MainBuilderComponents::OsDistro => "osDistro",
             MainBuilderComponents::CpuArch => "cpuArch",
+            MainBuilderComponents::WindowsBuilderComponents(ref component) => component.as_str(),
             MainBuilderComponents::MacOSBuilderComponents(ref component) => component.as_str(),
         }
     }
@@ -54,6 +57,11 @@ pub trait IMainBuilder: IDeviceInfoBuilder<MainBuilderComponents> {
     fn add_platform_name(&mut self) -> &mut Self;
     fn add_os_distro(&mut self) -> &mut Self;
     fn add_cpu_arch(&mut self) -> &mut Self;
+
+    fn on_windows<F>(&mut self, on_windows_plugin: F) -> &mut Self
+    where
+        F: Fn(&mut WindowsBuilder) -> &mut WindowsBuilder;
+
     fn on_macos<F>(&mut self, on_macos_plugin: F) -> &mut Self
     where
         F: Fn(&mut MacOSBuilder) -> &mut MacOSBuilder;
@@ -134,6 +142,32 @@ impl IMainBuilder for MainDeviceInfoBuilder {
     //         false => self,
     //     }
     // }
+
+    fn on_windows<F>(&mut self, on_windows_plugin: F) -> &mut Self
+    where
+        F: Fn(&mut WindowsBuilder) -> &mut WindowsBuilder,
+    {
+        match whoami::platform() == whoami::Platform::Windows {
+            true => {
+                let mut windows_builder = WindowsBuilder::new();
+                on_windows_plugin(&mut windows_builder);
+                self.extend_components(
+                    &(windows_builder
+                        .get_components()
+                        .iter()
+                        .map(|component| {
+                            (
+                                MainBuilderComponents::WindowsBuilderComponents(*component.0),
+                                component.1.to_owned(),
+                            )
+                        })
+                        .collect()),
+                );
+                self
+            }
+            false => self,
+        }
+    }
 
     fn on_macos<F>(&mut self, on_macos_plugin: F) -> &mut Self
     where
