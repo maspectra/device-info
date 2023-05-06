@@ -249,9 +249,18 @@ mod tests {
     }
 
     #[test]
+    fn test_windows_builder_logon_user_name() {
+        let mut builder = WindowsBuilder::new();
+        builder.add_logon_user_name();
+
+        println!("{:?}", builder.get_components());
+    }
+
+    #[test]
     fn test_windows_builder_all() {
         let mut builder = WindowsBuilder::new();
         builder
+            .add_logon_user_name()
             .add_system_drive_serial_number()
             .add_mother_board_serial_number()
             .add_system_uuid()
