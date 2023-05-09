@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt};
 
 use serde;
+#[cfg(target_os = "windows")]
 use winreg::{enums::HKEY_LOCAL_MACHINE, RegKey};
 
 use crate::core::internal::{BaseDeviceInfoBuilder, IDeviceInfoBuilder};
