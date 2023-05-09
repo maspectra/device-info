@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt};
 
 use serde;
+use winreg::{enums::HKEY_LOCAL_MACHINE, RegKey};
 
 use crate::core::internal::{BaseDeviceInfoBuilder, IDeviceInfoBuilder};
 #[cfg(target_os = "windows")]
@@ -16,6 +17,8 @@ pub enum WindowsBuilderComponents {
     MotherBoardSerialNumber,
     SystemUuid,
     MACAddress,
+    ProcessorId,
+    Guid,
 }
 
 impl serde::Serialize for WindowsBuilderComponents {
@@ -35,6 +38,8 @@ impl WindowsBuilderComponents {
             WindowsBuilderComponents::MotherBoardSerialNumber => "motherBoardSerialNumber",
             WindowsBuilderComponents::SystemUuid => "systemUuid",
             WindowsBuilderComponents::MACAddress => "MACAddress",
+            WindowsBuilderComponents::ProcessorId => "processorId",
+            WindowsBuilderComponents::Guid => "guid",
         }
     }
 }
@@ -50,6 +55,8 @@ pub trait IWindowsBuilder: IDeviceInfoBuilder<WindowsBuilderComponents> {
     fn add_mother_board_serial_number(&mut self) -> &mut Self;
     fn add_system_uuid(&mut self) -> &mut Self;
     fn add_mac_address(&mut self) -> &mut Self;
+    fn add_processor_id(&mut self) -> &mut Self;
+    fn add_machine_guid(&mut self) -> &mut Self;
 }
 
 pub struct WindowsBuilder {
@@ -101,16 +108,28 @@ struct MACAddressQueryResult {
     MACAddress: String,
 }
 
+#[cfg(target_os = "windows")]
+#[derive(serde::Deserialize)]
+#[allow(non_snake_case)]
+struct ProcessorIdQueryResult {
+    ProcessorId: String,
+}
+
 impl IWindowsBuilder for WindowsBuilder {
     fn add_logon_user_name(&mut self) -> &mut Self {
         #[cfg(target_os = "windows")]
         {
-            let res: Vec<UserNameQueryResult> =
-                WmiSingleton::raw_query("SELECT UserName FROM Win32_ComputerSystem");
-
+            let res: Vec<UserNameQueryResult> = WmiSingleton::raw_query(
+                "SELECT UserName FROM Win32_ComputerSystem WHERE UserName IS NOT NULL",
+            );
             self.add_component(
                 &WindowsBuilderComponents::LogonUserName,
-                strip_trailing_newline(res.get(0).expect("Nothing queried out").user_name.trim()),
+                strip_trailing_newline(
+                    res.get(0)
+                        .and_then(|r| Some(r.user_name.as_str()))
+                        .unwrap_or("")
+                        .trim(),
+                ),
             );
             self
         }
@@ -123,15 +142,16 @@ impl IWindowsBuilder for WindowsBuilder {
     fn add_system_drive_serial_number(&mut self) -> &mut Self {
         #[cfg(target_os = "windows")]
         {
-            let res: Vec<SerialNumberQueryResult> =
-                WmiSingleton::raw_query("SELECT SerialNumber FROM Win32_PhysicalMedia");
+            let res: Vec<SerialNumberQueryResult> = WmiSingleton::raw_query(
+                "SELECT SerialNumber FROM Win32_PhysicalMedia WHERE SerialNumber IS NOT NULL",
+            );
 
             self.add_component(
                 &WindowsBuilderComponents::SystemDriveSerialNumber,
                 strip_trailing_newline(
                     res.get(0)
-                        .expect("Nothing queried out")
-                        .serial_number
+                        .and_then(|r| Some(r.serial_number.as_str()))
+                        .unwrap_or("")
                         .trim(),
                 ),
             );
@@ -147,15 +167,16 @@ impl IWindowsBuilder for WindowsBuilder {
     fn add_mother_board_serial_number(&mut self) -> &mut Self {
         #[cfg(target_os = "windows")]
         {
-            let res: Vec<SerialNumberQueryResult> =
-                WmiSingleton::raw_query("SELECT SerialNumber FROM Win32_BaseBoard");
+            let res: Vec<SerialNumberQueryResult> = WmiSingleton::raw_query(
+                "SELECT SerialNumber FROM Win32_BaseBoard WHERE SerialNumber IS NOT NULL",
+            );
 
             self.add_component(
                 &WindowsBuilderComponents::MotherBoardSerialNumber,
                 strip_trailing_newline(
                     res.get(0)
-                        .expect("Nothing queried out")
-                        .serial_number
+                        .and_then(|r| Some(r.serial_number.as_str()))
+                        .unwrap_or("")
                         .trim(),
                 ),
             );
@@ -170,12 +191,18 @@ impl IWindowsBuilder for WindowsBuilder {
     fn add_system_uuid(&mut self) -> &mut Self {
         #[cfg(target_os = "windows")]
         {
-            let res: Vec<UUIDQueryResult> =
-                WmiSingleton::raw_query("SELECT UUID FROM Win32_ComputerSystemProduct");
+            let res: Vec<UUIDQueryResult> = WmiSingleton::raw_query(
+                "SELECT UUID FROM Win32_ComputerSystemProduct WHERE UUID IS NOT NULL",
+            );
 
             self.add_component(
                 &WindowsBuilderComponents::SystemUuid,
-                strip_trailing_newline(res.get(0).expect("Nothing queried out").uuid.trim()),
+                strip_trailing_newline(
+                    res.get(0)
+                        .and_then(|r| Some(r.uuid.as_str()))
+                        .unwrap_or("")
+                        .trim(),
+                ),
             );
             self
         }
@@ -194,8 +221,55 @@ impl IWindowsBuilder for WindowsBuilder {
 
             self.add_component(
                 &WindowsBuilderComponents::MACAddress,
-                strip_trailing_newline(res.get(0).expect("Nothing queried out").MACAddress.trim()),
+                strip_trailing_newline(strip_trailing_newline(
+                    res.get(0)
+                        .and_then(|r| Some(r.MACAddress.as_str()))
+                        .unwrap_or("")
+                        .trim(),
+                )),
             );
+            self
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            todo!()
+        }
+    }
+
+    fn add_processor_id(&mut self) -> &mut Self {
+        #[cfg(target_os = "windows")]
+        {
+            let res: Vec<ProcessorIdQueryResult> = WmiSingleton::raw_query(
+                "SELECT ProcessorId FROM Win32_Processor WHERE ProcessorId IS NOT NULL",
+            );
+
+            self.add_component(
+                &WindowsBuilderComponents::ProcessorId,
+                strip_trailing_newline(strip_trailing_newline(
+                    res.get(0)
+                        .and_then(|r| Some(r.ProcessorId.as_str()))
+                        .unwrap_or("")
+                        .trim(),
+                )),
+            );
+            self
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            todo!()
+        }
+    }
+
+    fn add_machine_guid(&mut self) -> &mut Self {
+        #[cfg(target_os = "windows")]
+        {
+            let rkey = RegKey::predef(HKEY_LOCAL_MACHINE)
+                .open_subkey("SOFTWARE\\Microsoft\\Cryptography")
+                .unwrap();
+
+            let id: String = rkey.get_value("MachineGuid").unwrap();
+
+            self.add_component(&WindowsBuilderComponents::Guid, id.as_str());
             self
         }
         #[cfg(not(target_os = "windows"))]

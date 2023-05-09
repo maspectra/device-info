@@ -25,6 +25,8 @@ fn do_print(print_m: &clap::ArgMatches) {
                 .add_mother_board_serial_number()
                 .add_system_uuid()
                 .add_mac_address()
+                .add_processor_id()
+                .add_machine_guid()
         })
         .on_macos(|macos_builder| {
             macos_builder
