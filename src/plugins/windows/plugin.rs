@@ -27,26 +27,43 @@ impl serde::Serialize for WindowsBuilderComponents {
     where
         S: serde::Serializer,
     {
-        self.as_str().serialize(serializer)
+        self.as_string().serialize(serializer)
     }
 }
 
 impl WindowsBuilderComponents {
-    pub fn as_str(&self) -> &str {
+    pub fn as_string(&self) -> String {
         match *self {
-            WindowsBuilderComponents::LogonUserName => "logonUserName",
-            WindowsBuilderComponents::SystemDriveSerialNumber => "systemDriveSerialNumber",
-            WindowsBuilderComponents::MotherBoardSerialNumber => "motherBoardSerialNumber",
-            WindowsBuilderComponents::SystemUuid => "systemUuid",
-            WindowsBuilderComponents::MACAddress => "MACAddress",
-            WindowsBuilderComponents::ProcessorId => "processorId",
-            WindowsBuilderComponents::Guid => "guid",
+            WindowsBuilderComponents::LogonUserName => "logonUserName".to_string(),
+            WindowsBuilderComponents::SystemDriveSerialNumber => {
+                "systemDriveSerialNumber".to_string()
+            }
+            WindowsBuilderComponents::MotherBoardSerialNumber => {
+                "motherBoardSerialNumber".to_string()
+            }
+            WindowsBuilderComponents::SystemUuid => "systemUuid".to_string(),
+            WindowsBuilderComponents::MACAddress => "MACAddress".to_string(),
+            WindowsBuilderComponents::ProcessorId => "processorId".to_string(),
+            WindowsBuilderComponents::Guid => "guid".to_string(),
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "logonUserName" => Some(WindowsBuilderComponents::LogonUserName),
+            "systemDriveSerialNumber" => Some(WindowsBuilderComponents::SystemDriveSerialNumber),
+            "motherBoardSerialNumber" => Some(WindowsBuilderComponents::MotherBoardSerialNumber),
+            "systemUuid" => Some(WindowsBuilderComponents::SystemUuid),
+            "MACAddress" => Some(WindowsBuilderComponents::MACAddress),
+            "processorId" => Some(WindowsBuilderComponents::ProcessorId),
+            "guid" => Some(WindowsBuilderComponents::Guid),
+            _ => None,
         }
     }
 }
 impl fmt::Display for WindowsBuilderComponents {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
+        f.write_str(self.as_string().as_str())
     }
 }
 

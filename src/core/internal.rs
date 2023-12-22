@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt, hash::Hash};
 
 pub trait IDeviceInfoBuilder<KT>
@@ -26,7 +26,7 @@ where
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct BaseDeviceInfoBuilder<KT>
 where
     KT: Clone + Copy + Hash + Eq + fmt::Display + Ord,

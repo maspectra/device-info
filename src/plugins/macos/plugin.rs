@@ -20,21 +20,31 @@ impl Serialize for MacOSBuilderComponents {
     where
         S: serde::Serializer,
     {
-        self.as_str().serialize(serializer)
+        self.as_string().serialize(serializer)
     }
 }
 
 impl MacOSBuilderComponents {
-    pub fn as_str(&self) -> &str {
+    pub fn as_string(&self) -> String {
         match *self {
-            MacOSBuilderComponents::SystemDriveSerialNumber => "systemDriveSerialNumber",
-            MacOSBuilderComponents::PlatformSerialNumber => "platformSerialNumber",
+            MacOSBuilderComponents::SystemDriveSerialNumber => {
+                "systemDriveSerialNumber".to_string()
+            }
+            MacOSBuilderComponents::PlatformSerialNumber => "platformSerialNumber".to_string(),
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "systemDriveSerialNumber" => Some(MacOSBuilderComponents::SystemDriveSerialNumber),
+            "platformSerialNumber" => Some(MacOSBuilderComponents::PlatformSerialNumber),
+            _ => None,
         }
     }
 }
 impl fmt::Display for MacOSBuilderComponents {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
+        f.write_str(self.as_string().as_str())
     }
 }
 
