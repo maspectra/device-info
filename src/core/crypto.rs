@@ -65,7 +65,7 @@ mod tests {
         let key = Aes256Gcm::generate_key(OsRng);
         let encrypted = aes::encrypt(&key, "Hello World");
 
-        assert_eq!(encrypted.is_ok(), true);
+        assert!(encrypted.is_ok());
     }
 
     #[test]
@@ -74,7 +74,7 @@ mod tests {
         let encrypted = aes::encrypt(&key, "Hello World");
         let decrypted = aes::decrypt(&key, &encrypted.unwrap());
 
-        assert_eq!(decrypted.is_ok(), true);
+        assert!(decrypted.is_ok());
         assert_eq!(decrypted.unwrap(), "Hello World");
     }
 
@@ -87,7 +87,7 @@ mod tests {
         let encrypted = aes::encrypt(&key, builder.to_string().as_str());
         let decrypted = aes::decrypt(&key, &encrypted.unwrap());
 
-        assert_eq!(decrypted.is_ok(), true);
+        assert!(decrypted.is_ok());
 
         serde_json::from_str::<MainDeviceInfoBuilder>(&decrypted.unwrap()).unwrap();
     }
