@@ -12,10 +12,13 @@ pub mod aes {
         cipher_text: Vec<u8>,
     }
 
-    pub fn generate_key() -> Key<Aes256Gcm> {
-        match std::env::var("ENCRYPTION_KEY") {
-            Ok(key) => *Key::<Aes256Gcm>::from_slice(key.as_ref()),
-            Err(_) => Aes256Gcm::generate_key(OsRng),
+    pub fn generate_aes_key(key: Option<&String>) -> Key<Aes256Gcm> {
+        match key {
+            Some(value) => *Key::<Aes256Gcm>::from_slice(value.as_ref()),
+            None => match std::env::var("ENCRYPTION_KEY") {
+                Ok(key) => *Key::<Aes256Gcm>::from_slice(key.as_ref()),
+                Err(_) => Aes256Gcm::generate_key(OsRng),
+            },
         }
     }
 
