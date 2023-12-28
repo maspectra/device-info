@@ -80,7 +80,7 @@ fn do_encrypt(encrypt_m: &clap::ArgMatches) {
     let aes_key = crypto::aes::generate_aes_key(key);
 
     match crypto::aes::encrypt(&aes_key, serde_json::to_string(&builder).unwrap().as_str()) {
-        Ok(encrypted) => print!("{}", encrypted),
+        Ok(encrypted) => println!("{}", encrypted),
         Err(e) => panic!("{}", e),
     }
 }
