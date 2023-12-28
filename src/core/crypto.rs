@@ -1,6 +1,6 @@
 pub mod aes {
     use aes_gcm::{
-        aead::{Aead, AeadCore, KeyInit, OsRng},
+        aead::{Aead, KeyInit, OsRng},
         Aes128Gcm, Error, Key, Nonce,
     };
     use std::str;
@@ -25,7 +25,8 @@ pub mod aes {
 
     pub fn encrypt(key: &Key<Aes128Gcm>, value: &str) -> Result<String, Error> {
         let cipher = Aes128Gcm::new(key);
-        let nonce = Aes128Gcm::generate_nonce(&mut OsRng); // 96-bits; unique per message
+        // let nonce = Aes128Gcm::generate_nonce(&mut OsRng); // 96-bits; unique per message
+        let nonce = Nonce::from([0; 12]); // always same nonce
         let encrypted = cipher.encrypt(&nonce, value.as_ref())?;
 
         let secret = Secret {
@@ -71,6 +72,7 @@ mod tests {
         let encrypted = aes::encrypt(&key, "Hello World");
 
         assert!(encrypted.is_ok());
+        println!("{}", encrypted.unwrap())
     }
 
     #[test]
