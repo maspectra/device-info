@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::fmt;
 
+use itertools::Itertools;
+use serde::ser::SerializeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::core::internal::IDeviceInfoBuilder;
@@ -238,7 +240,11 @@ impl Serialize for MainDeviceInfoBuilder {
     where
         S: serde::Serializer,
     {
-        self._base.serialize(serializer)
+        let mut map = serializer.serialize_map(Some(self._base.components.len()))?;
+        for (k, v) in self._base.components.iter().sorted_by_key(|el| el.0) {
+            map.serialize_entry(k, v)?;
+        }
+        map.end()
     }
 }
 
@@ -247,8 +253,10 @@ impl<'de> Deserialize<'de> for MainDeviceInfoBuilder {
     where
         D: serde::Deserializer<'de>,
     {
-        BaseDeviceInfoBuilder::<MainBuilderComponents>::deserialize(deserializer)
-            .map(|base| Self { _base: base })
+        let components = HashMap::<MainBuilderComponents, String>::deserialize(deserializer)?;
+        Ok(Self {
+            _base: BaseDeviceInfoBuilder::<MainBuilderComponents> { components },
+        })
     }
 }
 
@@ -312,7 +320,6 @@ mod tests {
                     .add_system_drive_serial_number()
             });
         let serialized = serde_json::to_string(&builder).unwrap();
-        println!("{:?}", serialized);
 
         let deserialized: MainDeviceInfoBuilder = match serde_json::from_str(&serialized) {
             Ok(v) => v,
